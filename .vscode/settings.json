@@ -1,9 +1,15 @@
 {
-    "cSpell.words": [
-        "gsap",
-        "metalness",
-        "Mipmaps",
-        "threejs",
-        "wireframe"
-    ]
+  "cSpell.words": [
+    "gsap",
+    "Matcap",
+    "matcaps",
+    "metalness",
+    "Mipmaps",
+    "Phong",
+    "threejs",
+    "Toon",
+    "wireframe"
+  ],
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true
 }
