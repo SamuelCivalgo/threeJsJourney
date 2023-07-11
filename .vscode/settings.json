@@ -1,6 +1,7 @@
 {
   "cSpell.words": [
     "Broadphase",
+    "GLTF",
     "gsap",
     "lerp",
     "Matcap",
@@ -8,6 +9,7 @@
     "metalness",
     "Mipmaps",
     "Phong",
+    "Raycaster",
     "threejs",
     "Toon",
     "wireframe"
