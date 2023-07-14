@@ -1,6 +1,8 @@
 {
   "cSpell.words": [
     "Broadphase",
+    "Cineon",
+    "Equirectangular",
     "GLTF",
     "gsap",
     "lerp",
@@ -10,6 +12,9 @@
     "Mipmaps",
     "Phong",
     "Raycaster",
+    "Reinhard",
+    "RGBE",
+    "Skybox",
     "threejs",
     "Toon",
     "wireframe"
