@@ -2,6 +2,7 @@ import Experience from '../Experience.js'
 import Environment from './Environment.js'
 import Floor from './Floor.js'
 import Fox from './Fox.js'
+import Mass from './Mass.js'
 
 export default class World {
   constructor() {
@@ -17,6 +18,7 @@ export default class World {
   setEnvironment() {
     this.floor = new Floor()
     this.fox = new Fox()
+    this.mass = new Mass()
 
     this.environment = new Environment()
   }
