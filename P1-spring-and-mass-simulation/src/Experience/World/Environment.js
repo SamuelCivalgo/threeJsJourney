@@ -11,6 +11,7 @@ export default class Environment {
 
     if (this.debug.active) {
       this.debugFolder = this.debug.ui.addFolder('Environment')
+      this.debugFolder.close()
     }
 
     this.setAmbientLight()

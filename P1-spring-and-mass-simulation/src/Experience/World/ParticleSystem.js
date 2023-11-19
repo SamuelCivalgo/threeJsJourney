@@ -6,6 +6,7 @@ import { Vector3 } from 'three'
 const GRAVITY_ACCELERATION = -9.81
 
 const EXAMPLES = ['Spiral', 'Rope', 'Cloth', 'Large Cloth']
+const ALGORITHMS = ['Explicit Euler', 'Gauss-Seidel']
 
 export default class ParticleSystem {
   constructor() {
@@ -16,7 +17,8 @@ export default class ParticleSystem {
     this.debug = this.experience.debug
     this.stiffness = 1000
     this.frictionCoefficient = 0.005
-    this.currentExample = 'Cloth'
+    this.currentExample = 'Rope'
+    this.currentAlgorithm = 'Explicit Euler'
 
     this.particles = []
     this.springs = []
@@ -28,24 +30,25 @@ export default class ParticleSystem {
       const debugObject = {
         ['Start Simulation']: () =>
           (this.simulationStarted = !this.simulationStarted),
+        ['Step']: () => this.simulationStep(),
         ['Reset']: () => this.loadExample(),
-        ['Example']: this.currentExample,
       }
 
       this.debugFolder.add(debugObject, 'Start Simulation')
+      this.debugFolder.add(debugObject, 'Step')
       this.debugFolder.add(debugObject, 'Reset')
-      this.debugFolder.add(this, 'stiffness').min(0).max(10000).step(1)
+      this.debugFolder.add(this, 'stiffness').min(0).max(5000).step(1)
       this.debugFolder
         .add(this, 'frictionCoefficient')
         .min(0)
-        .max(1)
+        .max(0.01)
         .step(0.001)
+      this.debugFolder.add(this, 'currentExample', EXAMPLES).onChange(() => {
+        this.loadExample()
+      })
       this.debugFolder
-        .add(debugObject, 'Example', EXAMPLES)
-        .onChange((newValue) => {
-          this.currentExample = newValue
-          this.loadExample()
-        })
+        .add(this, 'currentAlgorithm', ALGORITHMS)
+        .onChange(() => {})
     }
 
     this.loadExample()
@@ -253,7 +256,16 @@ export default class ParticleSystem {
   simulationStepGaussSeidel() {}
 
   simulationStep() {
-    this.simulationStepExplicitEuler()
+    switch (this.currentAlgorithm) {
+      case 'Explicit Euler':
+        this.simulationStepExplicitEuler()
+        break
+      case 'Gauss-Seidel':
+        this.simulationStepGaussSeidel()
+        break
+      default:
+        console.log('Unknown algorithm:', this.currentAlgorithm)
+    }
   }
 
   update() {
