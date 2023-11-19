@@ -2,7 +2,7 @@ import * as THREE from 'three'
 
 import Experience from '../Experience'
 
-export default class Mass {
+export default class Particle {
   constructor() {
     this.experience = new Experience()
     this.scene = this.experience.scene
@@ -27,4 +27,6 @@ export default class Mass {
 
     this.scene.add(this.mesh)
   }
+
+  update() {}
 }

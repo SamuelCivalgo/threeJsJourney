@@ -2,7 +2,7 @@ import Experience from '../Experience.js'
 import Environment from './Environment.js'
 import Floor from './Floor.js'
 import Fox from './Fox.js'
-import Mass from './Mass.js'
+import ParticleSystem from './ParticleSystem.js'
 
 export default class World {
   constructor() {
@@ -18,12 +18,16 @@ export default class World {
   setEnvironment() {
     this.floor = new Floor()
     this.fox = new Fox()
-    this.mass = new Mass()
+    this.particleSystem = new ParticleSystem()
 
     this.environment = new Environment()
   }
 
   update() {
+    if (this.particleSystem) {
+      this.particleSystem.update()
+    }
+
     if (this.fox) {
       this.fox.update()
     }
