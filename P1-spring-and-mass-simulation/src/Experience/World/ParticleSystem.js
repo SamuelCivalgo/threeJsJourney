@@ -5,6 +5,8 @@ import { Vector3 } from 'three'
 
 const GRAVITY_ACCELERATION = -9.81
 
+const EXAMPLES = ['Spiral', 'Rope', 'Cloth', 'Large Cloth']
+
 export default class ParticleSystem {
   constructor() {
     this.experience = new Experience()
@@ -14,6 +16,7 @@ export default class ParticleSystem {
     this.debug = this.experience.debug
     this.stiffness = 1000
     this.frictionCoefficient = 0.005
+    this.currentExample = 'Cloth'
 
     this.particles = []
     this.springs = []
@@ -25,7 +28,8 @@ export default class ParticleSystem {
       const debugObject = {
         ['Start Simulation']: () =>
           (this.simulationStarted = !this.simulationStarted),
-        ['Reset']: () => this.reset(),
+        ['Reset']: () => this.loadExample(),
+        ['Example']: this.currentExample,
       }
 
       this.debugFolder.add(debugObject, 'Start Simulation')
@@ -36,10 +40,15 @@ export default class ParticleSystem {
         .min(0)
         .max(1)
         .step(0.001)
+      this.debugFolder
+        .add(debugObject, 'Example', EXAMPLES)
+        .onChange((newValue) => {
+          this.currentExample = newValue
+          this.loadExample()
+        })
     }
 
-    this.createParticles(10)
-    this.createSprings()
+    this.loadExample()
   }
 
   reset() {
@@ -52,32 +61,130 @@ export default class ParticleSystem {
 
     this.particles = []
     this.springs = []
-    this.createParticles(10)
-    this.createSprings()
   }
 
-  createParticles(number) {
-    const radiusIncrease = 0.2
+  loadExample() {
+    this.reset()
+
+    switch (this.currentExample) {
+      case 'Spiral':
+        this.createSpiral()
+        break
+      case 'Rope':
+        this.createRope()
+        break
+      case 'Cloth':
+        this.createCloth()
+        break
+      case 'Large Cloth':
+        this.createCloth(32)
+        break
+      default:
+        console.log('Unknown example:', this.currentExample)
+    }
+  }
+
+  createSpiral() {
+    const number = 50
+
+    const radiusIncrease = 0.1
 
     for (let i = 0; i < number; i++) {
       const x = Math.cos(i) * i * radiusIncrease
-      const y = 2
+      const y = 0
       const z = Math.sin(i) * i * radiusIncrease
 
       const particle = new Particle(new Vector3(x, y, z))
 
       this.particles.push(particle)
+
+      if (i % 5 === 0) {
+        this.particles[i].isFixed = true
+      }
     }
 
     this.particles[0].isFixed = true
-  }
+    this.particles[number - 1].isFixed = true
 
-  createSprings() {
     for (let i = 0; i < this.particles.length - 1; i++) {
       const spring = new Spring(this.particles[i], this.particles[i + 1])
       this.springs.push(spring)
       this.scene.add(spring.mesh)
     }
+  }
+
+  createRope() {
+    const number = 10
+    const deltaIncrease = 1
+
+    for (let i = 0; i < number; i++) {
+      const x = i * deltaIncrease - (number * deltaIncrease) / 2
+      const y = 0
+      const z = 0
+
+      const particle = new Particle(new Vector3(x, y, z))
+
+      this.particles.push(particle)
+    }
+    this.particles[0].isFixed = true
+    this.particles[number - 1].isFixed = true
+
+    for (let i = 0; i < this.particles.length - 1; i++) {
+      const spring = new Spring(this.particles[i], this.particles[i + 1])
+      this.springs.push(spring)
+      this.scene.add(spring.mesh)
+    }
+  }
+
+  createCloth(N = 16) {
+    const x_start = -N / 2
+    const y_start = -N / 2
+    const dx = 1
+    const dy = 1
+
+    this.particles = []
+    this.springs = []
+
+    let index = 0 // Define the index variable
+
+    for (let i = 0; i < N; ++i) {
+      for (let j = 0; j < N; ++j) {
+        const x = x_start + j * dx
+        const y = y_start + i * dy
+        const z = 0 // Assuming a 2D plane for the cloth
+
+        // Create and add particle
+        const particle = new Particle(new Vector3(x, y, z))
+        if ((j === 0 && i === N - 1) || (j === N - 1 && i === N - 1)) {
+          particle.isFixed = true // Fixing corner particles
+        }
+        this.particles.push(particle)
+
+        // Create and add springs
+        if (i > 0) {
+          this.springs.push(new Spring(this.particles[index - N], particle))
+        }
+        if (j > 0) {
+          this.springs.push(new Spring(this.particles[index - 1], particle))
+        }
+        if (i > 0 && j > 0) {
+          const diagonalDistance = Math.sqrt(dx * dx + dy * dy)
+          this.springs.push(
+            new Spring(
+              this.particles[index - N - 1],
+              particle,
+              undefined,
+              diagonalDistance
+            )
+          )
+        }
+        ++index
+      }
+    }
+
+    // Add particles and springs to the scene
+    this.particles.forEach((particle) => this.scene.add(particle.mesh))
+    this.springs.forEach((spring) => this.scene.add(spring.mesh))
   }
 
   computeForces() {
@@ -146,7 +253,7 @@ export default class ParticleSystem {
   simulationStepGaussSeidel() {}
 
   simulationStep() {
-    simulationStepExplicitEuler()
+    this.simulationStepExplicitEuler()
   }
 
   update() {
