@@ -11,9 +11,7 @@ export default class Spring {
   }
 
   setGeometry() {
-    const distance = this.particleA.mesh.position.distanceTo(
-      this.particleB.mesh.position
-    )
+    const distance = this.particleA.position.distanceTo(this.particleB.position)
     this.initialDistance = distance
     this.geometry = new THREE.CylinderGeometry(0.05, 0.05, distance, 8)
   }
@@ -29,7 +27,7 @@ export default class Spring {
 
   update() {
     const midpoint = new THREE.Vector3()
-      .addVectors(this.particleA.mesh.position, this.particleB.mesh.position)
+      .addVectors(this.particleA.position, this.particleB.position)
       .multiplyScalar(0.5)
     this.mesh.position.copy(midpoint)
 
@@ -41,9 +39,7 @@ export default class Spring {
     const up = new THREE.Vector3(0, 1, 0)
     this.mesh.quaternion.setFromUnitVectors(up, axis.normalize())
 
-    const distance = this.particleA.mesh.position.distanceTo(
-      this.particleB.mesh.position
-    )
+    const distance = this.particleA.position.distanceTo(this.particleB.position)
 
     const newYRatio = distance / this.initialDistance
 
