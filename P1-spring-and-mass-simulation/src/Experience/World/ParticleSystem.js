@@ -12,6 +12,9 @@ export default class ParticleSystem {
     this.time = this.experience.time
     this.scene = this.experience.scene
     this.debug = this.experience.debug
+    this.stiffness = 1000
+    this.frictionCoefficient = 0.005
+
     this.particles = []
     this.springs = []
 
@@ -20,19 +23,41 @@ export default class ParticleSystem {
       this.debugFolder.open()
 
       const debugObject = {
-        toggleSimulation: () =>
+        ['Start Simulation']: () =>
           (this.simulationStarted = !this.simulationStarted),
+        ['Reset']: () => this.reset(),
       }
 
-      this.debugFolder.add(debugObject, 'toggleSimulation')
+      this.debugFolder.add(debugObject, 'Start Simulation')
+      this.debugFolder.add(debugObject, 'Reset')
+      this.debugFolder.add(this, 'stiffness').min(0).max(10000).step(1)
+      this.debugFolder
+        .add(this, 'frictionCoefficient')
+        .min(0)
+        .max(1)
+        .step(0.001)
     }
 
     this.createParticles(10)
     this.createSprings()
   }
 
+  reset() {
+    this.particles.forEach((particle) => {
+      this.scene.remove(particle.mesh)
+    })
+    this.springs.forEach((spring) => {
+      this.scene.remove(spring.mesh)
+    })
+
+    this.particles = []
+    this.springs = []
+    this.createParticles(10)
+    this.createSprings()
+  }
+
   createParticles(number) {
-    const radiusIncrease = 0.5
+    const radiusIncrease = 0.2
 
     for (let i = 0; i < number; i++) {
       const x = Math.cos(i) * i * radiusIncrease
@@ -59,6 +84,30 @@ export default class ParticleSystem {
     this.particles.forEach((particle) => {
       particle.force.set(0, particle.mass * GRAVITY_ACCELERATION, 0)
     })
+
+    this.springs.forEach((spring) => {
+      const particleA = spring.particleA
+      const particleB = spring.particleB
+
+      // Calculate displacement from rest length
+      const displacement =
+        particleA.position.distanceTo(particleB.position) - spring.restLength
+
+      // Calculate force magnitude (Hooke's Law)
+      const forceMagnitude = -this.stiffness * displacement
+
+      // // Calculate force direction
+      const forceDirection = new Vector3()
+        .subVectors(particleB.mesh.position, particleA.mesh.position)
+        .normalize()
+
+      // // Calculate final force vector
+      const force = forceDirection.multiplyScalar(forceMagnitude)
+
+      // // Apply to particleA and particleB (equal and opposite)
+      particleA.force.sub(force)
+      particleB.force.add(force)
+    })
   }
 
   // Gauss-Seidel
@@ -81,6 +130,13 @@ export default class ParticleSystem {
         .multiplyScalar(1 / particle.mass)
 
       particle.velocity.add(acceleration.clone().multiplyScalar(deltaSeconds))
+
+      // Apply friction
+      const frictionForce = particle.velocity
+        .clone()
+        .multiplyScalar(-this.frictionCoefficient)
+      particle.velocity.add(frictionForce)
+
       if (particle.isFixed) {
         particle.velocity.set(0, 0, 0)
       }

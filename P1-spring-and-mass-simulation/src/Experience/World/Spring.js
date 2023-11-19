@@ -12,7 +12,7 @@ export default class Spring {
 
   setGeometry() {
     const distance = this.particleA.position.distanceTo(this.particleB.position)
-    this.initialDistance = distance
+    this.restLength = distance
     this.geometry = new THREE.CylinderGeometry(0.05, 0.05, distance, 8)
   }
 
@@ -41,7 +41,7 @@ export default class Spring {
 
     const distance = this.particleA.position.distanceTo(this.particleB.position)
 
-    const newYRatio = distance / this.initialDistance
+    const newYRatio = distance / this.restLength
 
     this.mesh.scale.set(1, newYRatio, 1)
   }

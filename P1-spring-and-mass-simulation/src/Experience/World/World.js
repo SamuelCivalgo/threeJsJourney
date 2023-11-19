@@ -16,8 +16,8 @@ export default class World {
   }
 
   setEnvironment() {
-    this.floor = new Floor()
-    this.fox = new Fox()
+    // this.floor = new Floor()
+    // this.fox = new Fox()
     this.particleSystem = new ParticleSystem()
 
     this.environment = new Environment()
