@@ -23,6 +23,8 @@ export default class ParticleSystem {
 
       this.particles.push(particle)
     }
+
+    this.particles[0].isFixed = true
   }
 
   createSprings() {
