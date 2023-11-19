@@ -96,39 +96,34 @@ export default class ParticleSystem {
       // Calculate force magnitude (Hooke's Law)
       const forceMagnitude = -this.stiffness * displacement
 
-      // // Calculate force direction
+      // Calculate force direction
       const forceDirection = new Vector3()
         .subVectors(particleB.mesh.position, particleA.mesh.position)
         .normalize()
 
-      // // Calculate final force vector
+      // Calculate final force vector
       const force = forceDirection.multiplyScalar(forceMagnitude)
 
-      // // Apply to particleA and particleB (equal and opposite)
+      // Apply to particleA and particleB (equal and opposite)
       particleA.force.sub(force)
       particleB.force.add(force)
     })
   }
 
-  // Gauss-Seidel
-  simulationStep() {
+  simulationStepExplicitEuler() {
     this.computeForces()
-    // const vPlusArray = []
 
     const deltaSeconds = this.time.delta * 0.001
-
-    // for (let i = 0; i < this.particles.length; i++) {
-    //   const vPlus = new Vector3(0, 0, 0)
-    //   vPlusArray.push(vPlus)
-    // }
 
     for (let i = 0; i < this.particles.length; i++) {
       const particle = this.particles[i]
 
+      // Calculate acceleration
       const acceleration = particle.force
         .clone()
         .multiplyScalar(1 / particle.mass)
 
+      // Apply acceleration
       particle.velocity.add(acceleration.clone().multiplyScalar(deltaSeconds))
 
       // Apply friction
@@ -141,16 +136,17 @@ export default class ParticleSystem {
         particle.velocity.set(0, 0, 0)
       }
 
+      // Apply velocity
       particle.position.add(
         particle.velocity.clone().multiplyScalar(deltaSeconds)
       )
     }
+  }
 
-    // for (let i = 0; i < this.particles.length; i++) {
-    //   const particle = this.particles[i]
+  simulationStepGaussSeidel() {}
 
-    //   particle.position.add(particle.velocity.multiplyScalar(deltaSeconds))
-    // }
+  simulationStep() {
+    simulationStepExplicitEuler()
   }
 
   update() {
