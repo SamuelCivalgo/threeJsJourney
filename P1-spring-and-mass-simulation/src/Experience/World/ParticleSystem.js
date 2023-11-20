@@ -148,13 +148,13 @@ export default class ParticleSystem {
     this.particles = []
     this.springs = []
 
-    let index = 0 // Define the index variable
+    let index = 0
 
     for (let i = 0; i < N; ++i) {
       for (let j = 0; j < N; ++j) {
         const x = x_start + j * dx
-        const y = y_start + i * dy
-        const z = 0 // Assuming a 2D plane for the cloth
+        const y = 0
+        const z = y_start + i * dy
 
         // Create and add particle
         const particle = new Particle(new Vector3(x, y, z))
