@@ -5,6 +5,9 @@ export default class Spring {
     this.particleA = particleA
     this.particleB = particleB
 
+    this.particleA.connectedSprings.push(this)
+    this.particleB.connectedSprings.push(this)
+
     this.setGeometry()
     this.setMaterial()
     this.setMesh()

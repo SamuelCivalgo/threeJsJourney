@@ -15,10 +15,13 @@ export default class Particle {
     this.position = position
     this.velocity = new THREE.Vector3(0, 0, 0)
     this.force = new THREE.Vector3(0, 0, 0)
+    this.connectedSprings = []
 
     this.setGeometry()
     this.setMaterial()
     this.setMesh()
+
+    this.id = Math.floor(Math.random() * 10000)
   }
 
   setGeometry() {

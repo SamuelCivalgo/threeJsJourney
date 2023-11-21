@@ -18,7 +18,7 @@ export default class ParticleSystem {
     this.stiffness = 1000
     this.frictionCoefficient = 0.005
     this.currentExample = 'Rope'
-    this.currentAlgorithm = 'Explicit Euler'
+    this.currentAlgorithm = 'Gauss-Seidel'
 
     this.particles = []
     this.springs = []
@@ -293,8 +293,10 @@ export default class ParticleSystem {
       const displacement =
         particleA.position.distanceTo(particleB.position) - spring.restLength
 
+      // const alpha =
+
       // Calculate force magnitude (Hooke's Law)
-      const forceMagnitude = -this.stiffness * displacement
+      // const forceMagnitude = -this.stiffness * displacement
 
       // Calculate force direction
       const forceDirection = new Vector3()
@@ -343,7 +345,70 @@ export default class ParticleSystem {
     }
   }
 
-  simulationStepGaussSeidel() {}
+  simulationStepGaussSeidel() {
+    // this.particles.forEach((particle) => {
+    //   particle.force.set(0, particle.mass * GRAVITY_ACCELERATION, 0)
+    // })
+    this.computeForces()
+
+    const deltaSeconds = this.time.delta * 0.001 // dt
+    const v_plus = {}
+
+    // Step 1: Compute initial v_plus for each particle
+    this.particles.forEach((particle) => {
+      v_plus[particle.id] = particle.force
+        .clone()
+        .multiplyScalar(deltaSeconds)
+        .add(particle.velocity.clone().multiplyScalar(particle.mass)) // b[i] = dt * p.f + p.mass * p.v
+    })
+
+    // Step 2: Iteratively adjust v_plus based on springs
+    this.particles.forEach((particle) => {
+      let dfdxSum = 0
+
+      particle.connectedSprings.forEach((spring) => {
+        const particleA = spring.particleA
+        const particleB = spring.particleB
+
+        let otherParticleId =
+          particleA.id === particle.id ? particleB.id : particleA.id
+
+        // Calculate displacement from rest length
+        const displacement =
+          particleA.position.distanceTo(particleB.position) - spring.restLength
+
+        // Calculate force magnitude (Hooke's Law)
+        const dfdx = -this.stiffness
+
+        // Update v_plus[particle.id]
+        v_plus[particle.id].add(
+          v_plus[otherParticleId]
+            .clone()
+            .multiplyScalar(deltaSeconds * deltaSeconds * dfdx)
+        )
+
+        dfdxSum += dfdx
+      })
+
+      // Step 3: Finalize velocity update for particle
+      v_plus[particle.id].divideScalar(
+        particle.mass - deltaSeconds * deltaSeconds * dfdxSum
+      )
+    })
+
+    this.particles.forEach((particle) => {
+      particle.velocity.copy(v_plus[particle.id])
+
+      if (particle.isFixed) {
+        particle.velocity.set(0, 0, 0)
+      }
+
+      // Apply velocity
+      particle.position.add(
+        particle.velocity.clone().multiplyScalar(deltaSeconds)
+      )
+    })
+  }
 
   simulationStep() {
     switch (this.currentAlgorithm) {
