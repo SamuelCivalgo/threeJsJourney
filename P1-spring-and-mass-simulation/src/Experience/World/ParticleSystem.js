@@ -5,7 +5,7 @@ import { Vector3 } from 'three'
 
 const GRAVITY_ACCELERATION = -9.81
 
-const EXAMPLES = ['Spiral', 'Rope', 'Cloth', 'Large Cloth']
+const EXAMPLES = ['Spiral', 'Rope', 'Cloth', 'Large Cloth', 'Beam']
 const ALGORITHMS = ['Explicit Euler', 'Gauss-Seidel']
 
 export default class ParticleSystem {
@@ -81,6 +81,9 @@ export default class ParticleSystem {
         break
       case 'Large Cloth':
         this.createCloth(32)
+        break
+      case 'Beam':
+        this.createBeam()
         break
       default:
         console.log('Unknown example:', this.currentExample)
@@ -184,6 +187,93 @@ export default class ParticleSystem {
         ++index
       }
     }
+
+    // Add particles and springs to the scene
+    this.particles.forEach((particle) => this.scene.add(particle.mesh))
+    this.springs.forEach((spring) => this.scene.add(spring.mesh))
+  }
+
+  createBeam(N = 8) {
+    const x_start = -N / 2
+    const y_start = -N / 2
+    const dx = 1
+    const dy = 1
+    const dz = 1
+
+    this.particles = []
+
+    this.springs = []
+
+    let index = 0
+
+    const particles2 = []
+
+    for (let i = 0; i < 2; ++i) {
+      for (let j = 0; j < N; ++j) {
+        const x = x_start + j * dx
+        const y = 0
+        const z = y_start + i * dz
+
+        // Create and add particle
+        const particle = new Particle(new Vector3(x, y, z))
+        const particle2 = new Particle(new Vector3(x, y + dy, z))
+        if (j === 0) {
+          particle.isFixed = true
+          particle2.isFixed = true
+        }
+        this.particles.push(particle)
+        particles2.push(particle2)
+
+        // Create and add springs
+        if (i > 0) {
+          this.springs.push(new Spring(this.particles[index - N], particle))
+          this.springs.push(new Spring(particles2[index - N], particle2))
+        }
+        if (j > 0) {
+          this.springs.push(new Spring(this.particles[index - 1], particle))
+          this.springs.push(new Spring(particles2[index - 1], particle2))
+
+          this.springs.push(
+            new Spring(particles2[index], this.particles[index])
+          )
+          this.springs.push(
+            new Spring(particles2[index], this.particles[index - 1])
+          )
+        }
+        this.springs.push(new Spring(particles2[index], this.particles[index]))
+
+        if (i > 0 && j > 0) {
+          const diagonalDistance = Math.sqrt(dx * dx + dy * dy)
+          this.springs.push(
+            new Spring(
+              this.particles[index - N - 1],
+              particle,
+              undefined,
+              diagonalDistance
+            )
+          )
+          this.springs.push(
+            new Spring(
+              particles2[index - N - 1],
+              particle2,
+              undefined,
+              diagonalDistance
+            )
+          )
+          this.springs.push(
+            new Spring(
+              particles2[index - N],
+              particle,
+              undefined,
+              diagonalDistance
+            )
+          )
+        }
+        ++index
+      }
+    }
+
+    this.particles = this.particles.concat(particles2)
 
     // Add particles and springs to the scene
     this.particles.forEach((particle) => this.scene.add(particle.mesh))
