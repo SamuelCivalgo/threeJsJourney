@@ -289,26 +289,21 @@ export default class ParticleSystem {
       const particleA = spring.particleA
       const particleB = spring.particleB
 
-      // Calculate displacement from rest length
-      const displacement =
-        particleA.position.distanceTo(particleB.position) - spring.restLength
+      const distance = particleA.position.distanceTo(particleB.position)
 
-      // const alpha =
+      const alpha = this.stiffness * (1 - spring.restLength / distance)
 
-      // Calculate force magnitude (Hooke's Law)
-      // const forceMagnitude = -this.stiffness * displacement
+      const force1 = particleA.position
+        .clone()
+        .multiplyScalar(-alpha)
+        .add(particleB.position.clone().multiplyScalar(alpha))
+      const force2 = particleA.position
+        .clone()
+        .multiplyScalar(alpha)
+        .sub(particleB.position.clone().multiplyScalar(alpha))
 
-      // Calculate force direction
-      const forceDirection = new Vector3()
-        .subVectors(particleB.mesh.position, particleA.mesh.position)
-        .normalize()
-
-      // Calculate final force vector
-      const force = forceDirection.multiplyScalar(forceMagnitude)
-
-      // Apply to particleA and particleB (equal and opposite)
-      particleA.force.sub(force)
-      particleB.force.add(force)
+      particleA.force.add(force1)
+      particleB.force.add(force2)
     })
   }
 
