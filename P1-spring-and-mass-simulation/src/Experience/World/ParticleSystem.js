@@ -1,7 +1,7 @@
 import Particle from './Particle' // Your Particle class
 import Spring from './Spring' // Your Spring class
 import Experience from '../Experience'
-import { Vector3 } from 'three'
+import { Vector3, Matrix3 } from 'three'
 
 const GRAVITY_ACCELERATION = -9.81
 
@@ -341,25 +341,22 @@ export default class ParticleSystem {
   }
 
   simulationStepGaussSeidel() {
-    // this.particles.forEach((particle) => {
-    //   particle.force.set(0, particle.mass * GRAVITY_ACCELERATION, 0)
-    // })
-    this.computeForces()
-
     const deltaSeconds = this.time.delta * 0.001 // dt
     const v_plus = {}
 
-    // Step 1: Compute initial v_plus for each particle
+    this.computeForces()
+
+    this.particles.forEach((particle) => {
+      v_plus[particle.id] = new Vector3()
+    })
+
     this.particles.forEach((particle) => {
       v_plus[particle.id] = particle.force
         .clone()
         .multiplyScalar(deltaSeconds)
-        .add(particle.velocity.clone().multiplyScalar(particle.mass)) // b[i] = dt * p.f + p.mass * p.v
-    })
+        .add(particle.velocity.clone().multiplyScalar(particle.mass))
 
-    // Step 2: Iteratively adjust v_plus based on springs
-    this.particles.forEach((particle) => {
-      let dfdxSum = 0
+      let dfdxSum = new Matrix3()
 
       particle.connectedSprings.forEach((spring) => {
         const particleA = spring.particleA
@@ -368,27 +365,58 @@ export default class ParticleSystem {
         let otherParticleId =
           particleA.id === particle.id ? particleB.id : particleA.id
 
-        // Calculate displacement from rest length
-        const displacement =
-          particleA.position.distanceTo(particleB.position) - spring.restLength
+        const pApB = new Vector3().subVectors(
+          particleB.position,
+          particleA.position
+        )
+        const distance = pApB.length()
+        const alpha = this.stiffness * (1 - spring.restLength / distance)
 
-        // Calculate force magnitude (Hooke's Law)
-        const dfdx = -this.stiffness
+        let alphaMatrix = new Matrix3()
+        alphaMatrix.set(alpha, 0, 0, 0, alpha, 0, 0, 0, alpha) // Set diagonal elements to alpha
 
-        // Update v_plus[particle.id]
-        v_plus[particle.id].add(
-          v_plus[otherParticleId]
-            .clone()
-            .multiplyScalar(deltaSeconds * deltaSeconds * dfdx)
+        let distanceSquared = distance * distance
+        let dyadicProductMatrix = new Matrix3()
+        dyadicProductMatrix.set(
+          (pApB.x * pApB.x) / distanceSquared,
+          (pApB.x * pApB.y) / distanceSquared,
+          (pApB.x * pApB.z) / distanceSquared,
+          (pApB.y * pApB.x) / distanceSquared,
+          (pApB.y * pApB.y) / distanceSquared,
+          (pApB.y * pApB.z) / distanceSquared,
+          (pApB.z * pApB.x) / distanceSquared,
+          (pApB.z * pApB.y) / distanceSquared,
+          (pApB.z * pApB.z) / distanceSquared
+        )
+        dyadicProductMatrix.multiplyScalar(
+          this.stiffness * (spring.restLength / distance)
         )
 
-        dfdxSum += dfdx
+        let dfdxBlock = addMatrix(alphaMatrix, dyadicProductMatrix)
+
+        // Add operation
+        for (let i = 0; i < dfdxBlock.elements.length; i++) {
+          dfdxBlock.elements[i] =
+            alphaMatrix.elements[i] + dyadicProductMatrix.elements[i]
+        }
+
+        let otherParticleVelocity = v_plus[otherParticleId].clone()
+        v_plus[particle.id] = v_plus[particle.id].add(
+          otherParticleVelocity
+            .applyMatrix3(dfdxBlock)
+            .multiplyScalar(deltaSeconds * deltaSeconds)
+        )
+
+        dfdxSum = addMatrix(dfdxSum, dfdxBlock)
       })
 
-      // Step 3: Finalize velocity update for particle
-      v_plus[particle.id].divideScalar(
-        particle.mass - deltaSeconds * deltaSeconds * dfdxSum
-      )
+      //const divisor = particle.mass - deltaSeconds * deltaSeconds * dfdxSum
+      const divisor = // TODO
+
+      // Avoid division by zero errors
+      if (divisor !== 0) {
+        v_plus[particle.id].divideScalar(divisor)
+      }
     })
 
     this.particles.forEach((particle) => {
@@ -430,4 +458,12 @@ export default class ParticleSystem {
       spring.update()
     })
   }
+}
+
+function addMatrix(a, b) {
+  const result = new Matrix3()
+  for (let i = 0; i < result.elements.length; i++) {
+    result.elements[i] = a.elements[i] + b.elements[i]
+  }
+  return result
 }
