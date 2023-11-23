@@ -28,13 +28,13 @@ export default class ParticleSystem {
       this.debugFolder.open()
 
       const debugObject = {
-        ['Start Simulation']: () =>
+        ['Start/Stop Simulation']: () =>
           (this.simulationStarted = !this.simulationStarted),
         ['Step']: () => this.simulationStep(),
         ['Reset']: () => this.loadExample(),
       }
 
-      this.debugFolder.add(debugObject, 'Start Simulation')
+      this.debugFolder.add(debugObject, 'Start/Stop Simulation')
       this.debugFolder.add(debugObject, 'Step')
       this.debugFolder.add(debugObject, 'Reset')
       this.debugFolder.add(this, 'stiffness').min(0).max(5000).step(1)

@@ -1,7 +1,5 @@
 import Experience from '../Experience.js'
 import Environment from './Environment.js'
-import Floor from './Floor.js'
-import Fox from './Fox.js'
 import ParticleSystem from './ParticleSystem.js'
 
 export default class World {
@@ -16,10 +14,7 @@ export default class World {
   }
 
   setEnvironment() {
-    // this.floor = new Floor()
-    // this.fox = new Fox()
     this.particleSystem = new ParticleSystem()
-
     this.environment = new Environment()
   }
 

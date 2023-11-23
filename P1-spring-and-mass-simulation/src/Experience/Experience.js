@@ -44,6 +44,63 @@ export default class Experience {
     this.time.on('tick', () => {
       this.update()
     })
+
+    this.pointer = new THREE.Vector2()
+    this.raycaster = new THREE.Raycaster()
+
+    this.addPointerDownEventListener()
+    this.pushForce = 10
+
+    if (this.debug.active) {
+      this.debugFolder = this.debug.ui.addFolder('Experience')
+      this.debugFolder.close()
+    }
+
+    if (this.debug.active) {
+      this.debugFolder.add(this, 'pushForce').min(0).max(100).step(0.001)
+    }
+  }
+
+  addPointerDownEventListener() {
+    window.addEventListener('pointerdown', (event) => {
+      this.pointer.set(
+        (event.clientX / window.innerWidth) * 2 - 1,
+        -(event.clientY / window.innerHeight) * 2 + 1
+      )
+
+      this.raycaster.setFromCamera(this.pointer, this.camera.instance)
+
+      const particlesMesh = this.world.particleSystem.particles.map(
+        (particle) => {
+          const mesh = particle.mesh
+          mesh.particleId = particle.id
+
+          return mesh
+        }
+      )
+
+      const intersects = this.raycaster.intersectObjects(particlesMesh, false)
+
+      if (intersects.length > 0) {
+        const particleId = intersects[0].object.particleId
+
+        const particle = this.world.particleSystem.particles.find(
+          (particle) => particle.id === particleId
+        )
+
+        if (event.button === 0) {
+          // Left click logic
+          const rayDirection = this.raycaster.ray.direction
+          const velocityChange = rayDirection
+            .clone()
+            .multiplyScalar(this.pushForce)
+          particle.velocity.add(velocityChange)
+        } else if (event.button === 2) {
+          // Right click logic
+          particle.isFixed = !particle.isFixed
+        }
+      }
+    })
   }
 
   resize() {
