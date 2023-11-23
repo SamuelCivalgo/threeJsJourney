@@ -377,20 +377,19 @@ export default class ParticleSystem {
 
         let distanceSquared = distance * distance
         let dyadicProductMatrix = new Matrix3()
-        dyadicProductMatrix.set(
-          (pApB.x * pApB.x) / distanceSquared,
-          (pApB.x * pApB.y) / distanceSquared,
-          (pApB.x * pApB.z) / distanceSquared,
-          (pApB.y * pApB.x) / distanceSquared,
-          (pApB.y * pApB.y) / distanceSquared,
-          (pApB.y * pApB.z) / distanceSquared,
-          (pApB.z * pApB.x) / distanceSquared,
-          (pApB.z * pApB.y) / distanceSquared,
-          (pApB.z * pApB.z) / distanceSquared
-        )
-        dyadicProductMatrix.multiplyScalar(
-          this.stiffness * (spring.restLength / distance)
-        )
+        dyadicProductMatrix
+          .set(
+            (pApB.x * pApB.x) / distanceSquared,
+            (pApB.x * pApB.y) / distanceSquared,
+            (pApB.x * pApB.z) / distanceSquared,
+            (pApB.y * pApB.x) / distanceSquared,
+            (pApB.y * pApB.y) / distanceSquared,
+            (pApB.y * pApB.z) / distanceSquared,
+            (pApB.z * pApB.x) / distanceSquared,
+            (pApB.z * pApB.y) / distanceSquared,
+            (pApB.z * pApB.z) / distanceSquared
+          )
+          .multiplyScalar(this.stiffness * (spring.restLength / distance))
 
         let dfdxBlock = addMatrix(alphaMatrix, dyadicProductMatrix)
 
@@ -410,17 +409,26 @@ export default class ParticleSystem {
         dfdxSum = addMatrix(dfdxSum, dfdxBlock)
       })
 
-      //const divisor = particle.mass - deltaSeconds * deltaSeconds * dfdxSum
-      const divisor = // TODO
+      let massMatrix = new Matrix3()
+      const mass = particle.mass
+      massMatrix.set(mass, 0, 0, 0, mass, 0, 0, 0, mass)
 
-      // Avoid division by zero errors
-      if (divisor !== 0) {
-        v_plus[particle.id].divideScalar(divisor)
-      }
+      // Supposed to be subtraction put works only with addition?
+      const tmp = addMatrix(
+        massMatrix,
+        dfdxSum.multiplyScalar(deltaSeconds * deltaSeconds)
+      )
+      v_plus[particle.id].applyMatrix3(tmp.invert())
     })
 
     this.particles.forEach((particle) => {
       particle.velocity.copy(v_plus[particle.id])
+
+      // Apply friction
+      const frictionForce = particle.velocity
+        .clone()
+        .multiplyScalar(-this.frictionCoefficient)
+      particle.velocity.add(frictionForce)
 
       if (particle.isFixed) {
         particle.velocity.set(0, 0, 0)
@@ -464,6 +472,14 @@ function addMatrix(a, b) {
   const result = new Matrix3()
   for (let i = 0; i < result.elements.length; i++) {
     result.elements[i] = a.elements[i] + b.elements[i]
+  }
+  return result
+}
+
+function subMatrix(a, b) {
+  const result = new Matrix3()
+  for (let i = 0; i < result.elements.length; i++) {
+    result.elements[i] = a.elements[i] - b.elements[i]
   }
   return result
 }
