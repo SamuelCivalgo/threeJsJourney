@@ -50,15 +50,6 @@ export default class Experience {
 
     this.addPointerDownEventListener()
     this.pushForce = 10
-
-    if (this.debug.active) {
-      this.debugFolder = this.debug.ui.addFolder('Experience')
-      this.debugFolder.close()
-    }
-
-    if (this.debug.active) {
-      this.debugFolder.add(this, 'pushForce').min(0).max(100).step(0.001)
-    }
   }
 
   addPointerDownEventListener() {

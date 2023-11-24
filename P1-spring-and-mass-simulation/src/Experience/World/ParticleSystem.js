@@ -5,7 +5,7 @@ import { Vector3, Matrix3 } from 'three'
 
 const GRAVITY_ACCELERATION = -9.81
 
-const EXAMPLES = ['Spiral', 'Rope', 'Cloth', 'Large Cloth', 'Beam']
+const EXAMPLES = ['Rope', 'Spiral', 'Cloth', 'Large Cloth', 'Beam']
 const ALGORITHMS = ['Explicit Euler', 'Gauss-Seidel']
 
 export default class ParticleSystem {
@@ -43,12 +43,25 @@ export default class ParticleSystem {
         .min(0)
         .max(0.01)
         .step(0.001)
-      this.debugFolder.add(this, 'currentExample', EXAMPLES).onChange(() => {
-        this.loadExample()
-      })
       this.debugFolder
-        .add(this, 'currentAlgorithm', ALGORITHMS)
-        .onChange(() => {})
+        .add(this.experience, 'pushForce')
+        .min(0)
+        .max(100)
+        .step(0.001)
+      this.debugFolder.add(this, 'currentAlgorithm', ALGORITHMS)
+
+      for (const example of EXAMPLES) {
+        const label = `Load ${example}`
+
+        const functionObject = {
+          [label]: () => {
+            this.currentExample = example
+            this.loadExample()
+          },
+        }
+
+        this.debugFolder.add(functionObject, label)
+      }
     }
 
     this.loadExample()

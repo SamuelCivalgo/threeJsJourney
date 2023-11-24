@@ -8,8 +8,9 @@ export default class Environment {
     this.scene = this.experience.scene
     this.resources = this.experience.resources
     this.debug = this.experience.debug
+    this.showDebug = false
 
-    if (this.debug.active) {
+    if (this.debug.active && this.showDebug) {
       this.debugFolder = this.debug.ui.addFolder('Environment')
       this.debugFolder.close()
     }
