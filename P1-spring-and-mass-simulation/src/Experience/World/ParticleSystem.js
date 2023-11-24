@@ -350,77 +350,81 @@ export default class ParticleSystem {
       v_plus[particle.id] = new Vector3()
     })
 
-    this.particles.forEach((particle) => {
-      v_plus[particle.id] = particle.force
-        .clone()
-        .multiplyScalar(deltaSeconds)
-        .add(particle.velocity.clone().multiplyScalar(particle.mass))
+    // Update velocities
+    for (let i = 0; i < 10; i++) {
+      this.particles.forEach((particle) => {
+        v_plus[particle.id] = particle.force
+          .clone()
+          .multiplyScalar(deltaSeconds)
+          .add(particle.velocity.clone().multiplyScalar(particle.mass))
 
-      let dfdxSum = new Matrix3()
+        let dfdxSum = new Matrix3()
 
-      particle.connectedSprings.forEach((spring) => {
-        const particleA = spring.particleA
-        const particleB = spring.particleB
+        particle.connectedSprings.forEach((spring) => {
+          const particleA = spring.particleA
+          const particleB = spring.particleB
 
-        let otherParticleId =
-          particleA.id === particle.id ? particleB.id : particleA.id
+          let otherParticleId =
+            particleA.id === particle.id ? particleB.id : particleA.id
 
-        const pApB = new Vector3().subVectors(
-          particleB.position,
-          particleA.position
-        )
-        const distance = pApB.length()
-        const alpha = this.stiffness * (1 - spring.restLength / distance)
-
-        let alphaMatrix = new Matrix3()
-        alphaMatrix.set(alpha, 0, 0, 0, alpha, 0, 0, 0, alpha) // Set diagonal elements to alpha
-
-        let distanceSquared = distance * distance
-        let dyadicProductMatrix = new Matrix3()
-        dyadicProductMatrix
-          .set(
-            (pApB.x * pApB.x) / distanceSquared,
-            (pApB.x * pApB.y) / distanceSquared,
-            (pApB.x * pApB.z) / distanceSquared,
-            (pApB.y * pApB.x) / distanceSquared,
-            (pApB.y * pApB.y) / distanceSquared,
-            (pApB.y * pApB.z) / distanceSquared,
-            (pApB.z * pApB.x) / distanceSquared,
-            (pApB.z * pApB.y) / distanceSquared,
-            (pApB.z * pApB.z) / distanceSquared
+          const pApB = new Vector3().subVectors(
+            particleB.position,
+            particleA.position
           )
-          .multiplyScalar(this.stiffness * (spring.restLength / distance))
+          const distance = pApB.length()
+          const alpha = this.stiffness * (1 - spring.restLength / distance)
 
-        let dfdxBlock = addMatrix(alphaMatrix, dyadicProductMatrix)
+          let alphaMatrix = new Matrix3()
+          alphaMatrix.set(alpha, 0, 0, 0, alpha, 0, 0, 0, alpha) // Set diagonal elements to alpha
 
-        // Add operation
-        for (let i = 0; i < dfdxBlock.elements.length; i++) {
-          dfdxBlock.elements[i] =
-            alphaMatrix.elements[i] + dyadicProductMatrix.elements[i]
-        }
+          let distanceSquared = distance * distance
+          let dyadicProductMatrix = new Matrix3()
+          dyadicProductMatrix
+            .set(
+              (pApB.x * pApB.x) / distanceSquared,
+              (pApB.x * pApB.y) / distanceSquared,
+              (pApB.x * pApB.z) / distanceSquared,
+              (pApB.y * pApB.x) / distanceSquared,
+              (pApB.y * pApB.y) / distanceSquared,
+              (pApB.y * pApB.z) / distanceSquared,
+              (pApB.z * pApB.x) / distanceSquared,
+              (pApB.z * pApB.y) / distanceSquared,
+              (pApB.z * pApB.z) / distanceSquared
+            )
+            .multiplyScalar(this.stiffness * (spring.restLength / distance))
 
-        let otherParticleVelocity = v_plus[otherParticleId].clone()
-        v_plus[particle.id] = v_plus[particle.id].add(
-          otherParticleVelocity
-            .applyMatrix3(dfdxBlock)
-            .multiplyScalar(deltaSeconds * deltaSeconds)
+          let dfdxBlock = addMatrix(alphaMatrix, dyadicProductMatrix)
+
+          // Add operation
+          for (let i = 0; i < dfdxBlock.elements.length; i++) {
+            dfdxBlock.elements[i] =
+              alphaMatrix.elements[i] + dyadicProductMatrix.elements[i]
+          }
+
+          let otherParticleVelocity = v_plus[otherParticleId].clone()
+          v_plus[particle.id] = v_plus[particle.id].add(
+            otherParticleVelocity
+              .applyMatrix3(dfdxBlock)
+              .multiplyScalar(deltaSeconds * deltaSeconds)
+          )
+
+          dfdxSum = addMatrix(dfdxSum, dfdxBlock)
+        })
+
+        let massMatrix = new Matrix3()
+        const mass = particle.mass
+        massMatrix.set(mass, 0, 0, 0, mass, 0, 0, 0, mass)
+
+        // Supposed to be subtraction put works only with addition?
+        const tmp = addMatrix(
+          massMatrix,
+          dfdxSum.multiplyScalar(deltaSeconds * deltaSeconds)
         )
-
-        dfdxSum = addMatrix(dfdxSum, dfdxBlock)
+        v_plus[particle.id].applyMatrix3(tmp.invert())
       })
+    }
 
-      let massMatrix = new Matrix3()
-      const mass = particle.mass
-      massMatrix.set(mass, 0, 0, 0, mass, 0, 0, 0, mass)
-
-      // Supposed to be subtraction put works only with addition?
-      const tmp = addMatrix(
-        massMatrix,
-        dfdxSum.multiplyScalar(deltaSeconds * deltaSeconds)
-      )
-      v_plus[particle.id].applyMatrix3(tmp.invert())
-    })
-
+    // Update positions
     this.particles.forEach((particle) => {
       particle.velocity.copy(v_plus[particle.id])
 

@@ -21,7 +21,7 @@ export default class Particle {
     this.setMaterial()
     this.setMesh()
 
-    this.id = Math.floor(Math.random() * 1000000)
+    this.id = Math.floor(Math.random() * 1000000000)
   }
 
   setGeometry() {
