@@ -153,8 +153,9 @@ export default class ParticleSystem {
     this.computeForces()
 
     let iterationCounter = 0
+    const hasConverged = false // TODO: Implement convergence check
 
-    while (iterationCounter < this.maxIterations) {
+    while (!hasConverged && iterationCounter < this.maxIterations) {
       this.particles.forEach((particle) => {
         v_plus[particle.id] = particle.force
           .clone()
