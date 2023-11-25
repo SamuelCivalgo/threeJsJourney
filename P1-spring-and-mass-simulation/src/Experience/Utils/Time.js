@@ -17,6 +17,13 @@ export default class Time extends EventEmitter {
   tick() {
     const currentTime = Date.now()
     this.delta = currentTime - this.current
+
+    // Limit the delta to avoid huge jumps
+    const maxDelta = 100 // For example, 100 milliseconds
+    if (this.delta > maxDelta) {
+      this.delta = maxDelta
+    }
+
     this.current = currentTime
     this.elapsed = this.current - this.start
 

@@ -492,11 +492,3 @@ function addMatrix(a, b) {
   }
   return result
 }
-
-function subMatrix(a, b) {
-  const result = new Matrix3()
-  for (let i = 0; i < result.elements.length; i++) {
-    result.elements[i] = a.elements[i] - b.elements[i]
-  }
-  return result
-}
