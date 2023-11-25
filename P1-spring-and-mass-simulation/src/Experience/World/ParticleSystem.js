@@ -38,7 +38,7 @@ export default class ParticleSystem {
       this.debugFolder.add(debugObject, 'Start/Stop Simulation')
       this.debugFolder.add(debugObject, 'Step')
       this.debugFolder.add(debugObject, 'Reset')
-      this.debugFolder.add(this, 'stiffness').min(0).max(5000).step(1)
+      this.debugFolder.add(this, 'stiffness').min(0).max(50000).step(1)
       this.debugFolder
         .add(this, 'frictionCoefficient')
         .min(0)
@@ -47,7 +47,7 @@ export default class ParticleSystem {
       this.debugFolder
         .add(this.experience, 'pushForce')
         .min(0)
-        .max(100)
+        .max(1000)
         .step(0.001)
       this.debugFolder.add(this, 'currentAlgorithm', ALGORITHMS)
       this.debugFolder.add(this, 'maxIterations').min(1).max(100).step(1)
