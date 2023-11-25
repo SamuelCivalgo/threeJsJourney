@@ -8,8 +8,8 @@ export default class Grid {
     this.scene = this.experience.scene
     this.resources = this.experience.resources
 
-    const grid = new THREE.GridHelper(500, 50)
-    grid.position.y = -10
+    const grid = new THREE.GridHelper(1000, 100)
+    grid.position.y = -50
 
     this.scene.add(grid)
   }

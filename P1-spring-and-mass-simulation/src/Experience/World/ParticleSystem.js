@@ -19,6 +19,7 @@ export default class ParticleSystem {
     this.frictionCoefficient = 0.005
     this.currentExample = 'Rope'
     this.currentAlgorithm = 'Gauss-Seidel'
+    this.maxIterations = 10
 
     this.particles = []
     this.springs = []
@@ -49,6 +50,7 @@ export default class ParticleSystem {
         .max(100)
         .step(0.001)
       this.debugFolder.add(this, 'currentAlgorithm', ALGORITHMS)
+      this.debugFolder.add(this, 'maxIterations').min(1).max(100).step(1)
 
       for (const example of EXAMPLES) {
         const label = `Load ${example}`
@@ -150,8 +152,9 @@ export default class ParticleSystem {
 
     this.computeForces()
 
-    // Update velocities
-    for (let i = 0; i < 10; i++) {
+    let iterationCounter = 0
+
+    while (iterationCounter < this.maxIterations) {
       this.particles.forEach((particle) => {
         v_plus[particle.id] = particle.force
           .clone()
@@ -222,6 +225,8 @@ export default class ParticleSystem {
         )
         v_plus[particle.id].applyMatrix3(tmp.invert())
       })
+
+      iterationCounter++
     }
 
     this.updatePositions(deltaSeconds, v_plus)
