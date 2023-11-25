@@ -25,7 +25,7 @@ export default class Environment {
 
     this.scene.add(this.ambientLight)
 
-    if (this.debug.active) {
+    if (this.debug.active && this.showDebug) {
       this.debugFolder
         .add(this.ambientLight, 'intensity')
         .min(0)
@@ -46,7 +46,7 @@ export default class Environment {
     this.scene.add(this.sunlight)
 
     //Debug
-    if (this.debug.active) {
+    if (this.debug.active && this.showDebug) {
       this.debugFolder
         .add(this.sunlight, 'intensity')
         .min(0)
@@ -101,7 +101,7 @@ export default class Environment {
     this.environmentMap.updateMaterials()
 
     //Debug
-    if (this.debug.active) {
+    if (this.debug.active && this.showDebug) {
       this.debugFolder
         .add(this.environmentMap, 'intensity')
         .min(0)

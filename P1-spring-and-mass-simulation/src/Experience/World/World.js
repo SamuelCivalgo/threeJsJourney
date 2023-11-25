@@ -1,6 +1,7 @@
 import Experience from '../Experience.js'
 import Environment from './Environment.js'
 import ParticleSystem from './ParticleSystem.js'
+import Grid from './Grid.js'
 
 export default class World {
   constructor() {
@@ -16,15 +17,12 @@ export default class World {
   setEnvironment() {
     this.particleSystem = new ParticleSystem()
     this.environment = new Environment()
+    this.grid = new Grid()
   }
 
   update() {
     if (this.particleSystem) {
       this.particleSystem.update()
-    }
-
-    if (this.fox) {
-      this.fox.update()
     }
   }
 }
