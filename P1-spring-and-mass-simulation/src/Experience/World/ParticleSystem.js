@@ -67,6 +67,166 @@ export default class ParticleSystem {
     this.loadExample()
   }
 
+  computeForces() {
+    this.particles.forEach((particle) => {
+      particle.force.set(0, particle.mass * GRAVITY_ACCELERATION, 0)
+    })
+
+    this.springs.forEach((spring) => {
+      const particleA = spring.particleA
+      const particleB = spring.particleB
+
+      const distance = particleA.position.distanceTo(particleB.position)
+
+      const alpha = this.stiffness * (1 - spring.restLength / distance)
+
+      const force1 = particleA.position
+        .clone()
+        .multiplyScalar(-alpha)
+        .add(particleB.position.clone().multiplyScalar(alpha))
+      const force2 = particleA.position
+        .clone()
+        .multiplyScalar(alpha)
+        .sub(particleB.position.clone().multiplyScalar(alpha))
+
+      particleA.force.add(force1)
+      particleB.force.add(force2)
+    })
+  }
+
+  updatePositions(deltaSeconds, v_plus) {
+    this.particles.forEach((particle) => {
+      particle.velocity.copy(v_plus[particle.id])
+
+      // Apply friction
+      const frictionForce = particle.velocity
+        .clone()
+        .multiplyScalar(-this.frictionCoefficient)
+      particle.velocity.add(frictionForce)
+
+      if (particle.isFixed) {
+        particle.velocity.set(0, 0, 0)
+      }
+
+      // Apply velocity
+      particle.position.add(
+        particle.velocity.clone().multiplyScalar(deltaSeconds)
+      )
+    })
+  }
+
+  simulationStepExplicitEuler() {
+    const deltaSeconds = this.time.delta * 0.001 // dt
+    const v_plus = {}
+
+    this.particles.forEach((particle) => {
+      v_plus[particle.id] = new Vector3()
+    })
+
+    this.computeForces()
+
+    this.particles.forEach((particle) => {
+      // Calculate acceleration
+      const acceleration = particle.force
+        .clone()
+        .multiplyScalar(1 / particle.mass)
+
+      // Apply acceleration
+      v_plus[particle.id] = particle.velocity
+        .clone()
+        .add(acceleration.clone().multiplyScalar(deltaSeconds))
+    })
+
+    this.updatePositions(deltaSeconds, v_plus)
+  }
+
+  simulationStepGaussSeidel() {
+    const deltaSeconds = this.time.delta * 0.001 // dt
+    const v_plus = {}
+
+    this.particles.forEach((particle) => {
+      v_plus[particle.id] = new Vector3()
+    })
+
+    this.computeForces()
+
+    // Update velocities
+    for (let i = 0; i < 10; i++) {
+      this.particles.forEach((particle) => {
+        v_plus[particle.id] = particle.force
+          .clone()
+          .multiplyScalar(deltaSeconds)
+          .add(particle.velocity.clone().multiplyScalar(particle.mass))
+
+        let dfdxSum = new Matrix3()
+
+        particle.connectedSprings.forEach((spring) => {
+          const particleA = spring.particleA
+          const particleB = spring.particleB
+
+          let otherParticleId =
+            particleA.id === particle.id ? particleB.id : particleA.id
+
+          const pApB = new Vector3().subVectors(
+            particleB.position,
+            particleA.position
+          )
+          const distance = pApB.length()
+          const alpha = this.stiffness * (1 - spring.restLength / distance)
+
+          let alphaMatrix = new Matrix3()
+          alphaMatrix.set(alpha, 0, 0, 0, alpha, 0, 0, 0, alpha) // Set diagonal elements to alpha
+
+          let distanceSquared = distance * distance
+          let dyadicProductMatrix = new Matrix3()
+          dyadicProductMatrix
+            .set(
+              (pApB.x * pApB.x) / distanceSquared,
+              (pApB.x * pApB.y) / distanceSquared,
+              (pApB.x * pApB.z) / distanceSquared,
+              (pApB.y * pApB.x) / distanceSquared,
+              (pApB.y * pApB.y) / distanceSquared,
+              (pApB.y * pApB.z) / distanceSquared,
+              (pApB.z * pApB.x) / distanceSquared,
+              (pApB.z * pApB.y) / distanceSquared,
+              (pApB.z * pApB.z) / distanceSquared
+            )
+            .multiplyScalar(this.stiffness * (spring.restLength / distance))
+
+          let dfdxBlock = addMatrix(alphaMatrix, dyadicProductMatrix)
+
+          // Add operation
+          for (let i = 0; i < dfdxBlock.elements.length; i++) {
+            dfdxBlock.elements[i] =
+              alphaMatrix.elements[i] + dyadicProductMatrix.elements[i]
+          }
+
+          let otherParticleVelocity = v_plus[otherParticleId].clone()
+          v_plus[particle.id] = v_plus[particle.id].add(
+            otherParticleVelocity
+              .applyMatrix3(dfdxBlock)
+              .multiplyScalar(deltaSeconds * deltaSeconds)
+          )
+
+          dfdxSum = addMatrix(dfdxSum, dfdxBlock)
+        })
+
+        let massMatrix = new Matrix3()
+        const mass = particle.mass
+        massMatrix.set(mass, 0, 0, 0, mass, 0, 0, 0, mass)
+
+        // Supposed to be subtraction put works only with addition?
+        const tmp = addMatrix(
+          massMatrix,
+          dfdxSum.multiplyScalar(deltaSeconds * deltaSeconds)
+        )
+        v_plus[particle.id].applyMatrix3(tmp.invert())
+      })
+    }
+
+    this.updatePositions(deltaSeconds, v_plus)
+  }
+
   reset() {
     this.particles.forEach((particle) => {
       this.scene.remove(particle.mesh)
@@ -291,171 +451,6 @@ export default class ParticleSystem {
     // Add particles and springs to the scene
     this.particles.forEach((particle) => this.scene.add(particle.mesh))
     this.springs.forEach((spring) => this.scene.add(spring.mesh))
-  }
-
-  computeForces() {
-    this.particles.forEach((particle) => {
-      particle.force.set(0, particle.mass * GRAVITY_ACCELERATION, 0)
-    })
-
-    this.springs.forEach((spring) => {
-      const particleA = spring.particleA
-      const particleB = spring.particleB
-
-      const distance = particleA.position.distanceTo(particleB.position)
-
-      const alpha = this.stiffness * (1 - spring.restLength / distance)
-
-      const force1 = particleA.position
-        .clone()
-        .multiplyScalar(-alpha)
-        .add(particleB.position.clone().multiplyScalar(alpha))
-      const force2 = particleA.position
-        .clone()
-        .multiplyScalar(alpha)
-        .sub(particleB.position.clone().multiplyScalar(alpha))
-
-      particleA.force.add(force1)
-      particleB.force.add(force2)
-    })
-  }
-
-  simulationStepExplicitEuler() {
-    this.computeForces()
-
-    const deltaSeconds = this.time.delta * 0.001
-
-    for (let i = 0; i < this.particles.length; i++) {
-      const particle = this.particles[i]
-
-      // Calculate acceleration
-      const acceleration = particle.force
-        .clone()
-        .multiplyScalar(1 / particle.mass)
-
-      // Apply acceleration
-      particle.velocity.add(acceleration.clone().multiplyScalar(deltaSeconds))
-
-      // Apply friction
-      const frictionForce = particle.velocity
-        .clone()
-        .multiplyScalar(-this.frictionCoefficient)
-      particle.velocity.add(frictionForce)
-
-      if (particle.isFixed) {
-        particle.velocity.set(0, 0, 0)
-      }
-
-      // Apply velocity
-      particle.position.add(
-        particle.velocity.clone().multiplyScalar(deltaSeconds)
-      )
-    }
-  }
-
-  simulationStepGaussSeidel() {
-    const deltaSeconds = this.time.delta * 0.001 // dt
-    const v_plus = {}
-
-    this.computeForces()
-
-    this.particles.forEach((particle) => {
-      v_plus[particle.id] = new Vector3()
-    })
-
-    // Update velocities
-    for (let i = 0; i < 10; i++) {
-      this.particles.forEach((particle) => {
-        v_plus[particle.id] = particle.force
-          .clone()
-          .multiplyScalar(deltaSeconds)
-          .add(particle.velocity.clone().multiplyScalar(particle.mass))
-
-        let dfdxSum = new Matrix3()
-
-        particle.connectedSprings.forEach((spring) => {
-          const particleA = spring.particleA
-          const particleB = spring.particleB
-
-          let otherParticleId =
-            particleA.id === particle.id ? particleB.id : particleA.id
-
-          const pApB = new Vector3().subVectors(
-            particleB.position,
-            particleA.position
-          )
-          const distance = pApB.length()
-          const alpha = this.stiffness * (1 - spring.restLength / distance)
-
-          let alphaMatrix = new Matrix3()
-          alphaMatrix.set(alpha, 0, 0, 0, alpha, 0, 0, 0, alpha) // Set diagonal elements to alpha
-
-          let distanceSquared = distance * distance
-          let dyadicProductMatrix = new Matrix3()
-          dyadicProductMatrix
-            .set(
-              (pApB.x * pApB.x) / distanceSquared,
-              (pApB.x * pApB.y) / distanceSquared,
-              (pApB.x * pApB.z) / distanceSquared,
-              (pApB.y * pApB.x) / distanceSquared,
-              (pApB.y * pApB.y) / distanceSquared,
-              (pApB.y * pApB.z) / distanceSquared,
-              (pApB.z * pApB.x) / distanceSquared,
-              (pApB.z * pApB.y) / distanceSquared,
-              (pApB.z * pApB.z) / distanceSquared
-            )
-            .multiplyScalar(this.stiffness * (spring.restLength / distance))
-
-          let dfdxBlock = addMatrix(alphaMatrix, dyadicProductMatrix)
-
-          // Add operation
-          for (let i = 0; i < dfdxBlock.elements.length; i++) {
-            dfdxBlock.elements[i] =
-              alphaMatrix.elements[i] + dyadicProductMatrix.elements[i]
-          }
-
-          let otherParticleVelocity = v_plus[otherParticleId].clone()
-          v_plus[particle.id] = v_plus[particle.id].add(
-            otherParticleVelocity
-              .applyMatrix3(dfdxBlock)
-              .multiplyScalar(deltaSeconds * deltaSeconds)
-          )
-
-          dfdxSum = addMatrix(dfdxSum, dfdxBlock)
-        })
-
-        let massMatrix = new Matrix3()
-        const mass = particle.mass
-        massMatrix.set(mass, 0, 0, 0, mass, 0, 0, 0, mass)
-
-        // Supposed to be subtraction put works only with addition?
-        const tmp = addMatrix(
-          massMatrix,
-          dfdxSum.multiplyScalar(deltaSeconds * deltaSeconds)
-        )
-        v_plus[particle.id].applyMatrix3(tmp.invert())
-      })
-    }
-
-    // Update positions
-    this.particles.forEach((particle) => {
-      particle.velocity.copy(v_plus[particle.id])
-
-      // Apply friction
-      const frictionForce = particle.velocity
-        .clone()
-        .multiplyScalar(-this.frictionCoefficient)
-      particle.velocity.add(frictionForce)
-
-      if (particle.isFixed) {
-        particle.velocity.set(0, 0, 0)
-      }
-
-      // Apply velocity
-      particle.position.add(
-        particle.velocity.clone().multiplyScalar(deltaSeconds)
-      )
-    })
   }
 
   simulationStep() {
