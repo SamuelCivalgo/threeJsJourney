@@ -50,7 +50,7 @@ export default class ParticleSystem {
         .max(1000)
         .step(0.001)
       this.debugFolder.add(this, 'currentAlgorithm', ALGORITHMS)
-      this.debugFolder.add(this, 'maxIterations').min(1).max(100).step(1)
+      this.debugFolder.add(this, 'maxIterations').min(1).max(15).step(1)
 
       for (const example of EXAMPLES) {
         const label = `Load ${example}`

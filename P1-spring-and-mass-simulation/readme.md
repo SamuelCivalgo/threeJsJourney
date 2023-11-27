@@ -2,7 +2,7 @@
 
 ## Description
 
-This simulation models a spring-mass system using Three.js and draws inspiration from Xavier Provencal's course at ETS Montreal, titled "GTI320 Mathematical Programming: Patterns and Efficient Algorithms" (https://www.etsmtl.ca/etudes/cours/gti320).
+This simulation models a spring-mass system using Three.js and draws inspiration from Sheldon Andrew's course (taught by Xavier Provençal) at ETS Montreal, titled "GTI320 Mathematical Programming: Patterns and Efficient Algorithms" (https://www.etsmtl.ca/etudes/cours/gti320).
 
 It incorporates fundamental physics principles such as Hooke's Law and Newton's Second Law, and employs Euler's method for numerical integration, along with a Gauss-Seidel solver.
 
