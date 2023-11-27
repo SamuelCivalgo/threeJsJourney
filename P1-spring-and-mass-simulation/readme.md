@@ -1,5 +1,7 @@
 # Three.js Spring and Mass Simulation
 
+Demo Link: https://springmass.samuelcroteau.com/
+
 ## Description
 
 This simulation models a spring-mass system using Three.js and draws inspiration from Sheldon Andrew's course (taught by Xavier Provençal) at ETS Montreal, titled "GTI320 Mathematical Programming: Patterns and Efficient Algorithms" (https://www.etsmtl.ca/etudes/cours/gti320).
